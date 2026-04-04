@@ -1715,6 +1715,7 @@ class _ResultsView extends StatelessWidget {
   };
 
   Future<void> _handleSaveAndContinue(BuildContext context) async {
+    AppSession().scores.clear();
     AppSession().scores['mmse'] = total;
 
     if (total < 20) {

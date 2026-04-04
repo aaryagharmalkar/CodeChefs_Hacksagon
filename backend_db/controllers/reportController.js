@@ -7,10 +7,11 @@ export const uploadResults = async (req, res) => {
     const patientId = req.user.id;
     console.log(`🚀 [uploadResults] Request received → patientId=${patientId}`);
 
-    const { mmse, voice } = req.body;
+    const { mmse, voice, cookie } = req.body;
 
     console.log(`📋 [uploadResults] Payload → mmse=${mmse}`);
     console.log(`📋 [uploadResults] Voice →`, voice);
+    console.log(`📋 [uploadResults] Cookie →`, cookie);
 
     // ── Validation ──
     if (mmse === undefined || mmse === null) {
@@ -18,7 +19,7 @@ export const uploadResults = async (req, res) => {
       return res.status(400).json({ message: "MMSE score is required" });
     }
 
-    // ── Compute overall risk (simple logic, tweak later) ──
+    // ── Compute overall risk ──
     let overallRiskLevel = "low";
     let overallScore = 0;
 
@@ -29,11 +30,41 @@ export const uploadResults = async (req, res) => {
       else if (overallScore > 0.4) overallRiskLevel = "medium";
     }
 
+    // ── Build cookie subdocument (may be undefined if not collected) ──
+    let cookieData = undefined;
+    if (cookie) {
+      cookieData = {
+        dementiaProbability: cookie.dementiaProbability ?? null,
+        transcript: cookie.transcript ?? null,
+        audioMetrics: cookie.audioMetrics
+          ? {
+              avg_pause_duration_seconds:
+                cookie.audioMetrics.avg_pause_duration_seconds ?? null,
+              pause_count: cookie.audioMetrics.pause_count ?? null,
+            }
+          : undefined,
+        cognitiveMarkers: cookie.cognitiveMarkers
+          ? {
+              filler_rate: cookie.cognitiveMarkers.filler_rate ?? null,
+              lexical_diversity:
+                cookie.cognitiveMarkers.lexical_diversity ?? null,
+              avg_sentence_length:
+                cookie.cognitiveMarkers.avg_sentence_length ?? null,
+              hesitation_ratio:
+                cookie.cognitiveMarkers.hesitation_ratio ?? null,
+              long_pause_rate:
+                cookie.cognitiveMarkers.long_pause_rate ?? null,
+            }
+          : undefined,
+      };
+    }
+
     // ── Create Report ──
     const report = await Report.create({
       patientId,
       mmse,
       voice,
+      cookie: cookieData,
       overallRiskLevel,
       overallScore,
     });

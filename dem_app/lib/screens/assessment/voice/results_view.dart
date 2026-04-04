@@ -3,11 +3,14 @@
 // Shows the captured voice assessment fields directly in the UI and lets the
 // user export a local PDF report generated on-device.
 
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart' as pdf;
 import 'package:pdf/widgets.dart' as pw;
@@ -27,19 +30,9 @@ class ResultsView extends StatefulWidget {
 class _ResultsViewState extends State<ResultsView> {
   bool _isExporting = false;
 
-    Future<void> submitResults(BuildContext context) async {
-      try {
-        final storage = const FlutterSecureStorage();
-        final token = await storage.read(key: 'token');
-        final body = AppSession().scores;
-        final response = await http.post(
-          Uri.parse('http://192.168.55.176:5000/api/report/upload'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-          body: jsonEncode(body),
-        );
+  // Read voice scores from AppSession
+  Map<String, dynamic> get _voiceScores =>
+      (AppSession().scores['voice'] as Map<String, dynamic>?) ?? {};
 
   double get _riskScore {
     return (_voiceScores['riskScore'] as num?)?.toDouble() ?? 0.0;
@@ -84,6 +77,46 @@ class _ResultsViewState extends State<ResultsView> {
     }
   }
 
+  Future<void> submitResults(BuildContext context) async {
+    try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'token');
+      final body = AppSession().scores;
+      final response = await http.post(
+        Uri.parse('http://192.168.55.176:5000/api/report/upload'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+
+      if (!context.mounted) return;
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        context.go('/assessment/results');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Failed to submit results. Please try again.')),
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
+  Future<void> handleSaveAndContinue(BuildContext context) async {
+    if (_riskLevel.toLowerCase() == 'high') {
+      context.go('/assessment/cookie-theft');
+    } else {
+      await submitResults(context);
+    }
+  }
+
   Future<void> _exportPdf() async {
     if (_isExporting) return;
 
@@ -92,7 +125,8 @@ class _ResultsViewState extends State<ResultsView> {
     try {
       final bytes = await _buildPdfBytes();
       final directory = await getApplicationDocumentsDirectory();
-      final fileName = 'voice_report_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final fileName =
+          'voice_report_${DateTime.now().millisecondsSinceEpoch}.pdf';
       final file = File('${directory.path}/$fileName');
       await file.writeAsBytes(bytes, flush: true);
 
@@ -123,17 +157,12 @@ class _ResultsViewState extends State<ResultsView> {
     }
   }
 
-    Future<void> handleSaveAndContinue(BuildContext context) async {
-      // riskScore < 0.20 means the recording quality was too low — retry.
-      if (level.toLowerCase() == 'high') {
-        context.go('/assessment/cookie-theft');
-      } else {
-        await submitResults(context);
-      }
-    }
   Future<Uint8List> _buildPdfBytes() async {
     final document = pw.Document();
     final riskPct = (_riskScore * 100).clamp(0, 100);
+    final buttonLabel = _riskLevel.toLowerCase() == 'high'
+        ? 'Continue to Cognitive Assessment'
+        : 'Save & Continue';
 
     document.addPage(
       pw.MultiPage(
@@ -163,14 +192,14 @@ class _ResultsViewState extends State<ResultsView> {
                     color: pdf.PdfColors.white,
                   ),
                 ),
-                  pw.Text(level.toLowerCase() == 'high'
-                        ? 'Continue to Cognitive Assessment'
-                        : 'Save & Continue',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),),
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  buttonLabel,
+                  style: pw.TextStyle(
+                    fontSize: 13,
+                    color: pdf.PdfColors.white,
+                  ),
+                ),
                 pw.SizedBox(height: 6),
                 pw.Text(
                   'Generated locally from the captured clinical fields',
@@ -240,8 +269,10 @@ class _ResultsViewState extends State<ResultsView> {
                 _pdfFieldRow('Risk Level', _riskLevel),
                 _pdfFieldRow('Risk Score', '${riskPct.toStringAsFixed(1)}%'),
                 _pdfFieldRow('Age above 60', _ageAbove60 ? 'Yes' : 'No'),
-                _pdfFieldRow('Neurological history', _neuroHistory ? 'Yes' : 'No'),
-                _pdfFieldRow('High blood pressure', _hypertension ? 'Yes' : 'No'),
+                _pdfFieldRow(
+                    'Neurological history', _neuroHistory ? 'Yes' : 'No'),
+                _pdfFieldRow(
+                    'High blood pressure', _hypertension ? 'Yes' : 'No'),
                 _pdfFieldRow('Captured at', _timestampLabel),
               ],
             ),
@@ -330,7 +361,7 @@ class _ResultsViewState extends State<ResultsView> {
   }
 
   void _continue() {
-    context.go('/assessment/tug-test');
+    context.go('/assessment/cookie-theft');
   }
 
   @override
@@ -351,19 +382,22 @@ class _ResultsViewState extends State<ResultsView> {
       _FieldChip(
         label: 'Age > 60',
         value: _ageAbove60 ? 'Yes' : 'No',
-        accent: _ageAbove60 ? const Color(0xFF1F8A70) : const Color(0xFFE15241),
+        accent:
+            _ageAbove60 ? const Color(0xFF1F8A70) : const Color(0xFFE15241),
         icon: Icons.cake_outlined,
       ),
       _FieldChip(
         label: 'Neurological history',
         value: _neuroHistory ? 'Yes' : 'No',
-        accent: _neuroHistory ? const Color(0xFF1F8A70) : const Color(0xFFE15241),
+        accent:
+            _neuroHistory ? const Color(0xFF1F8A70) : const Color(0xFFE15241),
         icon: Icons.psychology_outlined,
       ),
       _FieldChip(
         label: 'Hypertension',
         value: _hypertension ? 'Yes' : 'No',
-        accent: _hypertension ? const Color(0xFF1F8A70) : const Color(0xFFE15241),
+        accent:
+            _hypertension ? const Color(0xFF1F8A70) : const Color(0xFFE15241),
         icon: Icons.favorite_border_rounded,
       ),
     ];
@@ -447,7 +481,7 @@ class _ResultsViewState extends State<ResultsView> {
                                 color: Colors.white.withOpacity(0.18),
                                 borderRadius: BorderRadius.circular(18),
                               ),
-                              child: Icon(
+                              child: const Icon(
                                 Icons.hearing_rounded,
                                 color: Colors.white,
                                 size: 28,
@@ -508,7 +542,8 @@ class _ResultsViewState extends State<ResultsView> {
                             value: _riskScore.clamp(0.0, 1.0),
                             minHeight: 10,
                             backgroundColor: Colors.white.withOpacity(0.16),
-                            valueColor: AlwaysStoppedAnimation<Color>(_riskColor),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(_riskColor),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -530,7 +565,9 @@ class _ResultsViewState extends State<ResultsView> {
                           label: 'Age above 60',
                           value: _ageAbove60 ? 'Yes' : 'No',
                           icon: Icons.cake_outlined,
-                          accent: _ageAbove60 ? AppColors.success : AppColors.danger,
+                          accent: _ageAbove60
+                              ? AppColors.success
+                              : AppColors.danger,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -539,7 +576,9 @@ class _ResultsViewState extends State<ResultsView> {
                           label: 'Neurological history',
                           value: _neuroHistory ? 'Yes' : 'No',
                           icon: Icons.psychology_outlined,
-                          accent: _neuroHistory ? AppColors.success : AppColors.danger,
+                          accent: _neuroHistory
+                              ? AppColors.success
+                              : AppColors.danger,
                         ),
                       ),
                     ],
@@ -549,7 +588,8 @@ class _ResultsViewState extends State<ResultsView> {
                     label: 'High blood pressure',
                     value: _hypertension ? 'Yes' : 'No',
                     icon: Icons.favorite_border_rounded,
-                    accent: _hypertension ? AppColors.success : AppColors.danger,
+                    accent:
+                        _hypertension ? AppColors.success : AppColors.danger,
                     fullWidth: true,
                   ),
                   const SizedBox(height: 18),
@@ -621,10 +661,12 @@ class _ResultsViewState extends State<ResultsView> {
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
                             )
                           : const Icon(Icons.picture_as_pdf_rounded),
-                      label: Text(_isExporting ? 'Preparing PDF...' : 'Download PDF'),
+                      label: Text(
+                          _isExporting ? 'Preparing PDF...' : 'Download PDF'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
@@ -640,7 +682,7 @@ class _ResultsViewState extends State<ResultsView> {
                     width: double.infinity,
                     height: 54,
                     child: OutlinedButton(
-                      onPressed: _continue,
+                      onPressed: () => handleSaveAndContinue(context),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
                         side: const BorderSide(color: AppColors.border),
@@ -648,7 +690,11 @@ class _ResultsViewState extends State<ResultsView> {
                           borderRadius: BorderRadius.circular(18),
                         ),
                       ),
-                      child: const Text('Continue to Cognitive Assessment'),
+                      child: Text(
+                        _riskLevel.toLowerCase() == 'high'
+                            ? 'Continue to Cognitive Assessment'
+                            : 'Save & Continue',
+                      ),
                     ),
                   ),
                 ],
