@@ -96,26 +96,32 @@ def convert_to_wav(input_file: str) -> str:
 
 
 def upload_audio(path: str) -> str:
-    """Upload WAV to AssemblyAI and return the hosted URL."""
     with open(path, "rb") as f:
         r = requests.post(
             "https://api.assemblyai.com/v2/upload",
             headers=UPLOAD_HEADERS,
             data=f,
         )
+    print(f"Upload response: {r.status_code} — {r.json()}")  # ADD THIS
     r.raise_for_status()
     return r.json()["upload_url"]
 
 
 def start_transcription(audio_url: str) -> str:
-    """Submit transcription job, return transcript ID."""
-    payload = {"audio_url": audio_url, "speaker_labels": False}
+    payload = {
+        "audio_url": audio_url,
+        "speech_models": ["universal-2"]
+    }
     r = requests.post(
         "https://api.assemblyai.com/v2/transcript",
-        headers=TRANSCRIPT_HEADERS,
+        headers={"authorization": ASSEMBLYAI_API_KEY},
         json=payload,
     )
-    r.raise_for_status()
+    print(f"Transcription status: {r.status_code}", flush=True)
+    print(f"Transcription body: {r.text}", flush=True)
+    sys.stdout.flush()
+    if not r.ok:
+        raise RuntimeError(f"AssemblyAI error {r.status_code}: {r.text}")
     return r.json()["id"]
 
 

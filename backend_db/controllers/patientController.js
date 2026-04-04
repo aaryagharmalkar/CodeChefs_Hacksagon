@@ -74,7 +74,7 @@ export const signup = async (req, res) => {
     const token = jwt.sign(
       { id: savedPatient._id, phone: savedPatient.phone },
       process.env.JWT_SECRET,
-      { expiresIn: "5h" }
+      { expiresIn: "24h" }
     );
 
     console.log(`✅ [signup] Signup successful → id=${savedPatient._id}`);
@@ -135,7 +135,7 @@ export const signin = async (req, res) => {
     const token = jwt.sign(
       { id: patient._id, phone: patient.phone, name: patient.name },
       process.env.JWT_SECRET,
-      { expiresIn: "5h" }
+      { expiresIn: "24h" }
     );
 
     console.log(`✅ [signin] Signin successful → id=${patient._id}`);

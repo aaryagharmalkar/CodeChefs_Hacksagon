@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 // Path to Python pipeline
 const pipelinePath = path.join(
   __dirname,
-  "../python_models/audio_to_cognitive_pipeline.py"
+  "../../model_testing/cookie_theft/audio_to_cognitive_pipeline.py"
 );
 
 // Setup multer for audio file uploads

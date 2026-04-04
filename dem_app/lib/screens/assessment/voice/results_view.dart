@@ -30,7 +30,6 @@ class ResultsView extends StatefulWidget {
 class _ResultsViewState extends State<ResultsView> {
   bool _isExporting = false;
 
-  // Read voice scores from AppSession
   Map<String, dynamic> get _voiceScores =>
       (AppSession().scores['voice'] as Map<String, dynamic>?) ?? {};
 
@@ -95,6 +94,16 @@ class _ResultsViewState extends State<ResultsView> {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         context.go('/assessment/results');
+      } else if (response.statusCode == 401) {
+        // Token expired, clear storage and redirect to login
+        await storage.delete(key: 'token');
+        await storage.delete(key: 'userId');
+        if (context.mounted) {
+          context.go('/login');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Session expired. Please login again.')),
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -109,17 +118,26 @@ class _ResultsViewState extends State<ResultsView> {
     }
   }
 
+  // PRIMARY action:
+  //   high   → cognitive test
+  //   medium → cognitive test   ← NEW
+  //   low    → save & finish
   Future<void> handleSaveAndContinue(BuildContext context) async {
-    if (_riskLevel.toLowerCase() == 'high') {
+    final level = _riskLevel.toLowerCase();
+    if (level == 'high' || level == 'medium') {
       context.go('/assessment/cookie-theft');
     } else {
       await submitResults(context);
     }
   }
 
+  // SECONDARY action: always available so any risk level can opt into the test
+  void _goToCognitiveTest() {
+    context.go('/assessment/cookie-theft');
+  }
+
   Future<void> _exportPdf() async {
     if (_isExporting) return;
-
     setState(() => _isExporting = true);
 
     try {
@@ -151,16 +169,15 @@ class _ResultsViewState extends State<ResultsView> {
         ),
       );
     } finally {
-      if (mounted) {
-        setState(() => _isExporting = false);
-      }
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
   Future<Uint8List> _buildPdfBytes() async {
     final document = pw.Document();
     final riskPct = (_riskScore * 100).clamp(0, 100);
-    final buttonLabel = _riskLevel.toLowerCase() == 'high'
+    final level = _riskLevel.toLowerCase();
+    final buttonLabel = (level == 'high' || level == 'medium')
         ? 'Continue to Cognitive Assessment'
         : 'Save & Continue';
 
@@ -193,27 +210,19 @@ class _ResultsViewState extends State<ResultsView> {
                   ),
                 ),
                 pw.SizedBox(height: 4),
-                pw.Text(
-                  buttonLabel,
-                  style: pw.TextStyle(
-                    fontSize: 13,
-                    color: pdf.PdfColors.white,
-                  ),
-                ),
+                pw.Text(buttonLabel,
+                    style: pw.TextStyle(
+                        fontSize: 13, color: pdf.PdfColors.white)),
                 pw.SizedBox(height: 6),
                 pw.Text(
                   'Generated locally from the captured clinical fields',
                   style: pw.TextStyle(
-                    fontSize: 11,
-                    color: pdf.PdfColors.white,
-                  ),
+                      fontSize: 11, color: pdf.PdfColors.white),
                 ),
                 pw.SizedBox(height: 14),
                 pw.Container(
                   padding: const pw.EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
+                      horizontal: 12, vertical: 8),
                   decoration: pw.BoxDecoration(
                     color: pdf.PdfColors.white,
                     borderRadius: pw.BorderRadius.circular(999),
@@ -231,21 +240,17 @@ class _ResultsViewState extends State<ResultsView> {
             ),
           ),
           pw.SizedBox(height: 18),
-          pw.Row(
-            children: [
-              _pdfMetricCard('Risk Score', '${riskPct.toStringAsFixed(1)}%'),
-              pw.SizedBox(width: 12),
-              _pdfMetricCard('Age > 60', _ageAbove60 ? 'Yes' : 'No'),
-            ],
-          ),
+          pw.Row(children: [
+            _pdfMetricCard('Risk Score', '${riskPct.toStringAsFixed(1)}%'),
+            pw.SizedBox(width: 12),
+            _pdfMetricCard('Age > 60', _ageAbove60 ? 'Yes' : 'No'),
+          ]),
           pw.SizedBox(height: 12),
-          pw.Row(
-            children: [
-              _pdfMetricCard('Neuro History', _neuroHistory ? 'Yes' : 'No'),
-              pw.SizedBox(width: 12),
-              _pdfMetricCard('Hypertension', _hypertension ? 'Yes' : 'No'),
-            ],
-          ),
+          pw.Row(children: [
+            _pdfMetricCard('Neuro History', _neuroHistory ? 'Yes' : 'No'),
+            pw.SizedBox(width: 12),
+            _pdfMetricCard('Hypertension', _hypertension ? 'Yes' : 'No'),
+          ]),
           pw.SizedBox(height: 18),
           pw.Container(
             padding: const pw.EdgeInsets.all(18),
@@ -267,7 +272,8 @@ class _ResultsViewState extends State<ResultsView> {
                 ),
                 pw.SizedBox(height: 12),
                 _pdfFieldRow('Risk Level', _riskLevel),
-                _pdfFieldRow('Risk Score', '${riskPct.toStringAsFixed(1)}%'),
+                _pdfFieldRow(
+                    'Risk Score', '${riskPct.toStringAsFixed(1)}%'),
                 _pdfFieldRow('Age above 60', _ageAbove60 ? 'Yes' : 'No'),
                 _pdfFieldRow(
                     'Neurological history', _neuroHistory ? 'Yes' : 'No'),
@@ -281,10 +287,7 @@ class _ResultsViewState extends State<ResultsView> {
           pw.Text(
             'This report contains the raw screening fields only. It is not a medical diagnosis and should be reviewed with a clinician if needed.',
             style: pw.TextStyle(
-              fontSize: 11,
-              color: pdf.PdfColors.grey700,
-              height: 1.5,
-            ),
+                fontSize: 11, color: pdf.PdfColors.grey700, height: 1.5),
           ),
         ],
       ),
@@ -305,22 +308,16 @@ class _ResultsViewState extends State<ResultsView> {
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text(
-              label,
-              style: pw.TextStyle(
-                fontSize: 10,
-                color: pdf.PdfColors.grey700,
-              ),
-            ),
+            pw.Text(label,
+                style: pw.TextStyle(
+                    fontSize: 10, color: pdf.PdfColors.grey700)),
             pw.SizedBox(height: 8),
-            pw.Text(
-              value,
-              style: pw.TextStyle(
-                fontSize: 17,
-                fontWeight: pw.FontWeight.bold,
-                color: pdf.PdfColors.blueGrey900,
-              ),
-            ),
+            pw.Text(value,
+                style: pw.TextStyle(
+                  fontSize: 17,
+                  fontWeight: pw.FontWeight.bold,
+                  color: pdf.PdfColors.blueGrey900,
+                )),
           ],
         ),
       ),
@@ -335,33 +332,32 @@ class _ResultsViewState extends State<ResultsView> {
         children: [
           pw.Expanded(
             flex: 4,
-            child: pw.Text(
-              label,
-              style: pw.TextStyle(
-                fontSize: 11,
-                color: pdf.PdfColors.grey700,
-              ),
-            ),
+            child: pw.Text(label,
+                style: pw.TextStyle(
+                    fontSize: 11, color: pdf.PdfColors.grey700)),
           ),
           pw.SizedBox(width: 12),
           pw.Expanded(
             flex: 5,
-            child: pw.Text(
-              value,
-              style: pw.TextStyle(
-                fontSize: 11,
-                fontWeight: pw.FontWeight.bold,
-                color: pdf.PdfColors.blueGrey900,
-              ),
-            ),
+            child: pw.Text(value,
+                style: pw.TextStyle(
+                  fontSize: 11,
+                  fontWeight: pw.FontWeight.bold,
+                  color: pdf.PdfColors.blueGrey900,
+                )),
           ),
         ],
       ),
     );
   }
 
-  void _continue() {
-    context.go('/assessment/cookie-theft');
+  /// Label for the primary CTA
+  String get _primaryButtonLabel {
+    final level = _riskLevel.toLowerCase();
+    if (level == 'high' || level == 'medium') {
+      return 'Continue to Cognitive Assessment';
+    }
+    return 'Save & Continue';
   }
 
   @override
@@ -402,6 +398,11 @@ class _ResultsViewState extends State<ResultsView> {
       ),
     ];
 
+    // The opt-in button only needs to show when the primary CTA doesn't
+    // already route to the cognitive test (i.e. risk is low or unknown).
+    final level = _riskLevel.toLowerCase();
+    final showOptInButton = level != 'high' && level != 'medium';
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
@@ -413,6 +414,7 @@ class _ResultsViewState extends State<ResultsView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Header ───────────────────────────────────────────────
                   Row(
                     children: [
                       Container(
@@ -434,17 +436,15 @@ class _ResultsViewState extends State<ResultsView> {
                           children: [
                             Text(
                               'Voice Report',
-                              style: AppTextStyles.title.copyWith(
-                                color: AppColors.textPrimary,
-                              ),
+                              style: AppTextStyles.title
+                                  .copyWith(color: AppColors.textPrimary),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               'Captured fields only, with local PDF export',
                               style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                              ),
+                                  color: AppColors.textSecondary,
+                                  fontSize: 12),
                             ),
                           ],
                         ),
@@ -452,6 +452,8 @@ class _ResultsViewState extends State<ResultsView> {
                     ],
                   ),
                   const SizedBox(height: 18),
+
+                  // ── Hero card ────────────────────────────────────────────
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -481,11 +483,8 @@ class _ResultsViewState extends State<ResultsView> {
                                 color: Colors.white.withOpacity(0.18),
                                 borderRadius: BorderRadius.circular(18),
                               ),
-                              child: const Icon(
-                                Icons.hearing_rounded,
-                                color: Colors.white,
-                                size: 28,
-                              ),
+                              child: const Icon(Icons.hearing_rounded,
+                                  color: Colors.white, size: 28),
                             ),
                             const SizedBox(width: 14),
                             Expanded(
@@ -527,9 +526,8 @@ class _ResultsViewState extends State<ResultsView> {
                                 Text(
                                   'risk score',
                                   style: TextStyle(
-                                    color: Colors.white.withOpacity(0.88),
-                                    fontSize: 11,
-                                  ),
+                                      color: Colors.white.withOpacity(0.88),
+                                      fontSize: 11),
                                 ),
                               ],
                             ),
@@ -541,7 +539,8 @@ class _ResultsViewState extends State<ResultsView> {
                           child: LinearProgressIndicator(
                             value: _riskScore.clamp(0.0, 1.0),
                             minHeight: 10,
-                            backgroundColor: Colors.white.withOpacity(0.16),
+                            backgroundColor:
+                                Colors.white.withOpacity(0.16),
                             valueColor:
                                 AlwaysStoppedAnimation<Color>(_riskColor),
                           ),
@@ -550,14 +549,15 @@ class _ResultsViewState extends State<ResultsView> {
                         Text(
                           'Local report generated from the fields captured during your voice check.',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.90),
-                            height: 1.5,
-                          ),
+                              color: Colors.white.withOpacity(0.90),
+                              height: 1.5),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 18),
+
+                  // ── Mini stat cards ──────────────────────────────────────
                   Row(
                     children: [
                       Expanded(
@@ -588,11 +588,14 @@ class _ResultsViewState extends State<ResultsView> {
                     label: 'High blood pressure',
                     value: _hypertension ? 'Yes' : 'No',
                     icon: Icons.favorite_border_rounded,
-                    accent:
-                        _hypertension ? AppColors.success : AppColors.danger,
+                    accent: _hypertension
+                        ? AppColors.success
+                        : AppColors.danger,
                     fullWidth: true,
                   ),
                   const SizedBox(height: 18),
+
+                  // ── Captured fields card ─────────────────────────────────
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
@@ -618,11 +621,8 @@ class _ResultsViewState extends State<ResultsView> {
                                 color: _riskTint,
                                 borderRadius: BorderRadius.circular(14),
                               ),
-                              child: Icon(
-                                Icons.view_list_rounded,
-                                color: _riskColor,
-                                size: 20,
-                              ),
+                              child: Icon(Icons.view_list_rounded,
+                                  color: _riskColor, size: 20),
                             ),
                             const SizedBox(width: 12),
                             const Expanded(
@@ -652,6 +652,8 @@ class _ResultsViewState extends State<ResultsView> {
                     ),
                   ),
                   const SizedBox(height: 20),
+
+                  // ── Download PDF ─────────────────────────────────────────
                   SizedBox(
                     width: double.infinity,
                     height: 58,
@@ -665,19 +667,22 @@ class _ResultsViewState extends State<ResultsView> {
                                   strokeWidth: 2, color: Colors.white),
                             )
                           : const Icon(Icons.picture_as_pdf_rounded),
-                      label: Text(
-                          _isExporting ? 'Preparing PDF...' : 'Download PDF'),
+                      label: Text(_isExporting
+                          ? 'Preparing PDF...'
+                          : 'Download PDF'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
+                            borderRadius: BorderRadius.circular(18)),
                       ),
                     ),
                   ),
                   const SizedBox(height: 12),
+
+                  // ── Primary CTA ──────────────────────────────────────────
+                  // high/medium → cognitive test | low → save & finish
                   SizedBox(
                     width: double.infinity,
                     height: 54,
@@ -687,16 +692,33 @@ class _ResultsViewState extends State<ResultsView> {
                         foregroundColor: AppColors.primary,
                         side: const BorderSide(color: AppColors.border),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
+                            borderRadius: BorderRadius.circular(18)),
                       ),
-                      child: Text(
-                        _riskLevel.toLowerCase() == 'high'
-                            ? 'Continue to Cognitive Assessment'
-                            : 'Save & Continue',
-                      ),
+                      child: Text(_primaryButtonLabel),
                     ),
                   ),
+
+                  // ── Opt-in button (always visible for low/unknown risk) ───
+                  // For high/medium the primary button already goes to the test,
+                  // so we only show this extra button when risk is low/unknown.
+                  if (showOptInButton) ...[
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: TextButton.icon(
+                        onPressed: _goToCognitiveTest,
+                        icon: const Icon(Icons.psychology_outlined, size: 18),
+                        label:
+                            const Text('Take Cognitive Assessment Anyway'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.textSecondary,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -706,6 +728,8 @@ class _ResultsViewState extends State<ResultsView> {
     );
   }
 }
+
+// ── Supporting widgets ────────────────────────────────────────────────────────
 
 class _FieldChip extends StatelessWidget {
   final String label;
@@ -769,10 +793,8 @@ class _FieldChip extends StatelessWidget {
           Container(
             width: 10,
             height: 10,
-            decoration: BoxDecoration(
-              color: accent,
-              shape: BoxShape.circle,
-            ),
+            decoration:
+                BoxDecoration(color: accent, shape: BoxShape.circle),
           ),
         ],
       ),
@@ -864,8 +886,8 @@ class _Backdrop extends StatelessWidget {
         child: Stack(
           children: [
             Container(
-              decoration: const BoxDecoration(color: AppColors.background),
-            ),
+                decoration:
+                    const BoxDecoration(color: AppColors.background)),
             Positioned(
               top: -80,
               right: -60,

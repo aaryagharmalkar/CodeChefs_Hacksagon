@@ -18,9 +18,9 @@ const Color _kAccent = Color(0xFFB39DDB);
 // Services
 // ---------------------------------------------------------------------------
 class MedicationService {
-  static const String _mainBackend = 'http://192.168.55.176:5000';
-  static const String _voiceServer = 'http://192.168.55.176:5001';
-  static const String _prescriptionServer = 'http://192.168.55.176:5002';
+  static const String _mainBackend = 'http://192.168.55.105:5000';
+  static const String _voiceServer = 'http://192.168.55.105:5001';
+  static const String _prescriptionServer = 'http://192.168.55.105:5002';
 
   static Future<void> addMedication(Map<String, dynamic> data) async {
     final storage = const FlutterSecureStorage();
@@ -114,13 +114,21 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   }
 
   // ── Voice ────────────────────────────────────────────────────────────────
+
   Future<void> _toggleRecording() async {
-    if (_isRecording) {
-      final path = await _audioRecorder.stop();
-      setState(() => _isRecording = false);
-      if (path != null) await _processRecording(path);
+  if (_isRecording) {
+    final path = await _audioRecorder.stop();
+    setState(() => _isRecording = false);
+    print('>>> Recording stopped. Path: $path');
+    if (path != null) {
+      final file = File(path);
+      print('>>> File exists: ${file.existsSync()}, size: ${file.lengthSync()} bytes');
+      await _processRecording(path);
     } else {
-      final hasPermission = await _audioRecorder.hasPermission();
+      _showError('Recording failed — no file path returned');
+    }
+  } else {
+        final hasPermission = await _audioRecorder.hasPermission();
       if (!hasPermission) {
         _showError('Microphone permission required');
         return;
@@ -133,44 +141,73 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         path: filePath,
       );
       setState(() => _isRecording = true);
-    }
   }
+}
 
-  Future<void> _processRecording(String audioPath) async {
-    setState(() => _isProcessing = true);
-    try {
-      final result = await MedicationService.processVoiceInput(audioPath);
-      setState(() {
-        _nameController.text = result['name'] ?? '';
-        _medicineType = result['type'] ?? 'tablet';
-        _doseCount =
-            result['doseCount'] ?? (_medicineType == 'syrup' ? 5 : 1);
-        _frequency = result['frequency'] ?? 'Daily';
-        _durationController.text = (result['durationDays'] ?? 7).toString();
+Future<void> _processRecording(String audioPath) async {
+  setState(() => _isProcessing = true);
+  try {
+    print('>>> Sending audio file: $audioPath');
+    final result = await MedicationService.processVoiceInput(audioPath);
+    print('>>> Got result: $result');
 
-        _intakeMap.forEach((k, _) => _intakeMap[k] = false);
-        for (final t in (result['intakeTimes'] as List? ?? [])) {
-          if (_intakeMap.containsKey(t)) _intakeMap[t] = true;
+    // ── Apply result to form fields ──────────────────────────────
+    setState(() {
+      // Name
+      if (result['name'] != null && result['name'].toString().isNotEmpty) {
+        _nameController.text = result['name'].toString();
+      }
+
+      // Type
+      if (['tablet', 'syrup', 'other'].contains(result['type'])) {
+        _medicineType = result['type'];
+        _doseCount = _medicineType == 'syrup' ? 5 : 1;
+      }
+
+      // Intake times
+      final intakeTimes = (result['intakeTimes'] as List? ?? []);
+      for (final key in _intakeMap.keys) {
+        _intakeMap[key] = intakeTimes.contains(key);
+      }
+
+      // Custom times
+      final rawCustom = (result['customTimes'] as List? ?? []);
+      _customTimes = rawCustom.map((t) {
+        final parts = t.toString().split(':');
+        if (parts.length >= 2) {
+          return TimeOfDay(
+            hour: int.tryParse(parts[0]) ?? 0,
+            minute: int.tryParse(parts[1]) ?? 0,
+          );
         }
+        return TimeOfDay.now();
+      }).toList();
 
-        _customTimes.clear();
-        for (final ts in (result['customTimes'] as List? ?? [])) {
-          final parts = ts.toString().split(':');
-          if (parts.length == 2) {
-            _customTimes.add(TimeOfDay(
-              hour: int.parse(parts[0]),
-              minute: int.parse(parts[1]),
-            ));
-          }
-        }
-      });
-      _showSuccess('Voice input processed! Review and edit if needed.');
-    } catch (e) {
-      _showError('Error processing voice: $e');
-    } finally {
-      setState(() => _isProcessing = false);
-    }
+      // Frequency
+      if (['Daily', 'Alternate Days'].contains(result['frequency'])) {
+        _frequency = result['frequency'];
+      }
+
+      // Dose count
+      if (result['doseCount'] != null) {
+        _doseCount = (result['doseCount'] as num).toInt();
+      }
+
+      // Duration
+      if (result['durationDays'] != null) {
+        _durationController.text = result['durationDays'].toString();
+      }
+    });
+
+    _showSuccess('Voice input applied! Please review and save.');
+  } catch (e, stack) {
+    print('>>> ERROR: $e');
+    print('>>> STACK: $stack');
+    _showError('Error processing voice: $e');
+  } finally {
+    setState(() => _isProcessing = false);
   }
+}
 
   // ── Custom time ───────────────────────────────────────────────────────────
   Future<void> _pickCustomTime({int? editIndex}) async {

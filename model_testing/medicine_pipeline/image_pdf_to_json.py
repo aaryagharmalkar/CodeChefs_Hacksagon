@@ -24,9 +24,11 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY missing from .env")
 
+import google.generativeai as genai
+
+os.environ["GOOGLE_CLOUD_REGION"] = "us-central1"  # add this line
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel("gemini-2.5-flash")
-
 # ===============================
 # FASTAPI APP
 # ===============================
