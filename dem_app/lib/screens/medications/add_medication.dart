@@ -511,7 +511,7 @@ class _PrescriptionSheetState extends State<_PrescriptionSheet> {
   }
 
   Future<void> _pickPDF() async {
-    const pdfType = XTypeGroup(label: 'PDF', extensions: ['pdf']);
+    final pdfType = XTypeGroup(label: 'PDF', extensions: ['pdf']);
     final file = await openFile(acceptedTypeGroups: [pdfType]);
     if (file != null) {
       setState(() {
@@ -1331,6 +1331,53 @@ class _Row extends StatelessWidget {
                 overflow: TextOverflow.ellipsis),
           ),
         ],
+      ),
+    );
+  }
+}
+class _VoiceBanner extends StatelessWidget {
+  final bool isRecording;
+  final bool isProcessing;
+  final VoidCallback? onTap;
+
+  const _VoiceBanner({
+    required this.isRecording,
+    required this.isProcessing,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    String text = "Tap to record voice input";
+
+    if (isRecording) text = "Recording... Tap to stop";
+    if (isProcessing) text = "Processing voice...";
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.purple.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.purple),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isRecording ? Icons.mic : Icons.mic_none,
+              color: Colors.purple,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                text,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

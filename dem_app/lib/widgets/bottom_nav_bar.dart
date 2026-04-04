@@ -31,7 +31,7 @@ class NeuraBottomNavBar extends StatelessWidget {
 						'/dashboard',
 						'/reports',
 						'/medications',
-						'/doctors',
+						'/medical-summariser',
 						'/profile',
 					];
 
@@ -50,8 +50,8 @@ class NeuraBottomNavBar extends StatelessWidget {
 						label: 'Meds',
 					),
 					BottomNavigationBarItem(
-						icon: Icon(Icons.medical_services_rounded),
-						label: 'Doctors',
+						icon: Icon(Icons.mic_rounded),
+						label: 'Summariser',
 					),
 					BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
 				],

@@ -10,6 +10,8 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import '../../core/theme/app_colors.dart';
+import '../../widgets/common/neura_button.dart';
 import '../../core/utils/app_session.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -297,7 +299,7 @@ final List<MmseSection> mmseSections = [
         type: AnswerType.text,
         maxScore: 1,
         acceptedAnswers: ['pencil', 'pen'],
-        imageAsset: 'assets/images/pencil.png',
+        imageAsset: 'assets/pencil.png',
       ),
       MmseQuestion(
         id: 'lang_watch',
@@ -306,7 +308,7 @@ final List<MmseSection> mmseSections = [
         type: AnswerType.text,
         maxScore: 1,
         acceptedAnswers: ['watch', 'clock', 'wristwatch'],
-        imageAsset: 'assets/images/watch.jpg',
+        imageAsset: 'assets/watch.jpg',
       ),
       MmseQuestion(
         id: 'lang_repeat',

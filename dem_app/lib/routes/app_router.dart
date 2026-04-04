@@ -14,9 +14,11 @@ import '../screens/assessment/voice/voice_check_viewmodel.dart';
 import '../screens/assessment/cookie_theft_screen.dart';
 import '../screens/assessment/tug_test_screen.dart';
 import '../screens/assessment/results_screen.dart';
+
+import '../screens/doctors/medical_summariser_page.dart';
 import '../screens/medications/add_medication.dart';
 import '../screens/medications/view_medications.dart';
-import '../screens/consultation/consultation_screen.dart';
+
 import '../screens/voice_assistant/voice_assistant_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/assessment/voice/results_view.dart';
@@ -99,8 +101,8 @@ class AppRouter {
         builder: (context, state) => const AddMedicationScreen(),
       ),
       GoRoute(
-        path: '/consultation',
-        builder: (context, state) => const ConsultationScreen(),
+        path: '/medical-summariser',
+        builder: (context, state) => const MedicalSummariserPage(),
       ),
       GoRoute(
         path: '/voice-assistant',

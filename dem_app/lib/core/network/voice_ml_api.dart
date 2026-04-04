@@ -33,13 +33,12 @@ class VoiceMlApi {
     required int ac,
     required int nth,
     required int htn,
-    int updrs = 0,
   }) async {
     final uri = Uri.parse('$_mlBaseUrl$_predictEndpoint');
 
     debugPrint('➡️  ML request → $uri');
     debugPrint('🎧  Audio path  : $wavPath');
-    debugPrint('🧾  Clinical    : ac=$ac  nth=$nth  htn=$htn  updrs=$updrs');
+    debugPrint('🧾  Clinical    : ac=$ac  nth=$nth  htn=$htn');
 
     final request = http.MultipartRequest('POST', uri);
 
@@ -56,7 +55,6 @@ class VoiceMlApi {
     request.fields['ac'] = ac.toString();
     request.fields['nth'] = nth.toString();
     request.fields['htn'] = htn.toString();
-    request.fields['updrs'] = updrs.toString();
 
     try {
       final streamed = await request.send().timeout(

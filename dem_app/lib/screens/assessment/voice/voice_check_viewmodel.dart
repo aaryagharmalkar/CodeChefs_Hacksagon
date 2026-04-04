@@ -52,7 +52,6 @@ class VoiceCheckViewModel extends ChangeNotifier {
   int? ac;
   int? nth;
   int? htn;
-  int updrs = 0; // binary toggle from ClinicalInputSheet
 
   // ── Lifecycle guard ────────────────────────────────────────────────────────
   bool _disposed = false;
@@ -88,13 +87,11 @@ class VoiceCheckViewModel extends ChangeNotifier {
     required int ac,
     required int nth,
     required int htn,
-    int updrs = 0,
   }) {
     this.ac = ac;
     this.nth = nth;
     this.htn = htn;
-    this.updrs = updrs;
-    debugPrint('🧾 Clinical inputs set → ac=$ac nth=$nth htn=$htn updrs=$updrs');
+    debugPrint('🧾 Clinical inputs set → ac=$ac nth=$nth htn=$htn');
   }
 
   // ─── Recording ─────────────────────────────────────────────────────────────
@@ -203,7 +200,6 @@ class VoiceCheckViewModel extends ChangeNotifier {
         ac: ac!,
         nth: nth!,
         htn: htn!,
-        updrs: updrs,
       );
 
       debugPrint('🧠 ML result: $result');
@@ -226,7 +222,6 @@ class VoiceCheckViewModel extends ChangeNotifier {
         'ac': ac,
         'nth': nth,
         'htn': htn,
-        'updrs': updrs,
       };
     } catch (e) {
       _progressTimer?.cancel();

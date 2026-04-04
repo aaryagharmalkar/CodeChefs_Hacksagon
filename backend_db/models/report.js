@@ -3,40 +3,53 @@ import mongoose from "mongoose";
 const voiceSchema = new mongoose.Schema({
   riskScore: { type: Number, required: true },
   riskLevel: { type: String, required: true },
-
-  ac: { type: Number },
-  nth: { type: Number },
-  htn: { type: Number },
+  ac:    { type: Number },
+  nth:   { type: Number },
+  htn:   { type: Number },
   updrs: { type: Number },
+}, { _id: false });
+
+const audioMetricsSchema = new mongoose.Schema({
+  avg_pause_duration_seconds: { type: Number },
+  pause_count:                { type: Number },
+}, { _id: false });
+
+const cognitiveMarkersSchema = new mongoose.Schema({
+  filler_rate:          { type: Number },
+  lexical_diversity:    { type: Number },
+  avg_sentence_length:  { type: Number },
+  hesitation_ratio:     { type: Number },
+  long_pause_rate:      { type: Number },
+}, { _id: false });
+
+const cookieSchema = new mongoose.Schema({
+  dementiaProbability: { type: Number },
+  transcript:          { type: String },
+  audioMetrics:        { type: audioMetricsSchema },
+  cognitiveMarkers:    { type: cognitiveMarkersSchema },
 }, { _id: false });
 
 const reportSchema = new mongoose.Schema(
   {
     patientId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Patient",
+      type:     mongoose.Schema.Types.ObjectId,
+      ref:      "Patient",
       required: true,
     },
-
-    // Cognitive test
     mmse: {
-      type: Number,
+      type:     Number,
       required: true,
     },
-
-    // Voice ML analysis
     voice: {
-      type: voiceSchema,
+      type:     voiceSchema,
       required: false,
     },
-
-    // Optional future expansion
-    overallRiskLevel: {
-      type: String,
+    cookie: {
+      type:     cookieSchema,
+      required: false,
     },
-    overallScore: {
-      type: Number,
-    },
+    overallRiskLevel: { type: String },
+    overallScore:     { type: Number },
   },
   { timestamps: true }
 );

@@ -48,7 +48,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisCount: 2,
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
-                childAspectRatio: 1.2,
+                childAspectRatio: 0.92,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
@@ -68,10 +68,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   _actionCard(
                     context,
-                    icon: Icons.medical_services_rounded,
-                    title: 'Find Doctors',
-                    subtitle: 'Specialist care',
-                    route: '/doctors',
+                    icon: Icons.mic_rounded,
+                    title: 'Medical Summariser',
+                    subtitle: 'Record or upload audio',
+                    route: '/medical-summariser',
                   ),
                   _actionCard(
                     context,
@@ -296,17 +296,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: AppColors.border),
         ),
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
                 color: AppColors.primarySoft,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: AppColors.primary, size: 21),
+              child: Icon(icon, color: AppColors.primary, size: 20),
             ),
             const Spacer(),
             Text(
@@ -314,14 +314,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w700,
+                fontSize: 13,
               ),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             Text(
               subtitle,
               style: const TextStyle(
                 color: AppColors.textSecondary,
-                fontSize: 12,
+                fontSize: 11,
               ),
             ),
           ],

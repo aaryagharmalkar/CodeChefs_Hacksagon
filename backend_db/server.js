@@ -4,8 +4,8 @@ import dotenv from "dotenv";
 
 import patientRoutes from "./routes/patientRoutes.js";
 import medicineRoutes from "./routes/medicineRoutes.js";
+import assessmentRoutes from "./routes/assessmentRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
-
 dotenv.config();
 
 const app = express();
@@ -20,6 +20,6 @@ mongoose
 // ── Routes ──
 app.use("/api/patient", patientRoutes);     // signup, signin, profile, meal times, alerts
 app.use("/api/medicine", medicineRoutes);   // add medicine, fetch by day
-app.use("/api/report", reportRoutes);      // health assessments, reports
-
+app.use("/api/assessment", assessmentRoutes); // cognitive assessments (Cookie Theft, etc.)
+app.use("/api/report", reportRoutes); 
 app.listen(5000, "0.0.0.0", () => console.log("🚀 Server running on port 5000"));

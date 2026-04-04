@@ -82,9 +82,6 @@ class _VoiceCheckBodyState extends State<_VoiceCheckBody>
           ac: (result['ac'] as num).toInt(),
           nth: (result['nth'] as num).toInt(),
           htn: (result['htn'] as num).toInt(),
-          updrs: (result['updrs'] is double)
-              ? (result['updrs'] as double).toInt()
-              : (result['updrs'] as num).toInt(),
         );
 
         await vm.startRecording();
