@@ -1,0 +1,11 @@
+Metric,Value
+Task Type,Sit To Stand
+Instruction Time,2026-04-03 19:25:24
+Age Group,young
+Movement Completed,True
+Time Taken (s),2.0156097412109375
+Age Group Average Time (s),1.4
+Maximum Knee Angle,169.28572845458984
+Average Knee Angle,158.22795867919922
+Performance Comparison,Patient took 2.02s which is MORE than average (1.4s) for young group.
+Report Generated At,2026-04-03 19:25:31

@@ -1,0 +1,10 @@
+Metric,Value
+Instruction Time,2026-02-24 23:20:09
+Task Type,sit_to_stand
+Command,Stand Up
+Final Status,Completed
+Movement Completed,True
+Time to Complete,12.138302326202393
+Maximum Angle,171.44049072265625
+Average Angle,108.6454899461181
+Report Generated At,2026-02-24 23:20:22

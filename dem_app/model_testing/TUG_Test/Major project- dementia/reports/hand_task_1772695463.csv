@@ -1,0 +1,11 @@
+Metric,Value
+Task Type,Hand Raise
+Instruction Time,2026-03-05 12:53:56
+Command Given,right
+Final Status,Full
+Movement Completed,True
+Reaction Time (s),6.854161262512207
+Maximum Shoulder Angle,120.524169921875
+Average Shoulder Angle,54.50790260009122
+Hand Detection Result,Correct Hand Raised
+Report Generated At,2026-03-05 12:54:23
