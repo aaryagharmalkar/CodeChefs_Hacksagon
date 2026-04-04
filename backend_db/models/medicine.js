@@ -1,7 +1,5 @@
 import mongoose from "mongoose";
 
-// Add Taken and Missed fields to generate reports later
-
 const MedicineSchema = new mongoose.Schema(
   {
     patientId: {
@@ -9,32 +7,33 @@ const MedicineSchema = new mongoose.Schema(
       ref: "Patient",
       required: true,
     },
-
     name: {
       type: String,
       required: true,
       trim: true,
     },
-
     type: {
       type: String,
       enum: ["tablet", "syrup", "other"],
       required: true,
     },
-
+    // Numeric codes for standard meal-relative times (1–6)
     alarmKeys: [
       {
         type: Number,
-        required: true,
       },
     ],
-
+    // Free-form custom time strings e.g. "08:30 AM"
+    customTimes: [
+      {
+        type: String,
+      },
+    ],
     frequency: {
       type: String,
       enum: ["Daily", "Alternate Days", "Specific Days"],
       required: true,
     },
-
     // Only used when frequency = "Specific Days"
     days: [
       {
@@ -42,43 +41,13 @@ const MedicineSchema = new mongoose.Schema(
         enum: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
       },
     ],
-
     durationDays: {
       type: Number,
       required: true,
     },
-
     doseCount: {
       type: Number,
       required: true,
-    },
-
-    taken: {
-      type: Number,
-      required: false,
-      default: 0
-    },
-
-    missed: {
-      type: Number,
-      required: false,
-      default: 0
-    },
-
-    delayed: {
-      type: Number,
-      required: false,
-      default: 0
-    },
-
-    photoUrl: {
-      type: String,
-      required: false,
-    },
-
-    isCritical: {
-      type: Boolean,
-      default: false,
     },
   },
   { timestamps: true }

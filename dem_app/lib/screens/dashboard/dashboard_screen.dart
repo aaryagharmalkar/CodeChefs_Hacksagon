@@ -64,7 +64,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     icon: Icons.medication_liquid_rounded,
                     title: 'Medications',
                     subtitle: 'Daily schedule',
-                    route: '/medications',
+                    route: '/view-medications',   // ← updated
                   ),
                   _actionCard(
                     context,

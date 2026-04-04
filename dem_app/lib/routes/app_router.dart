@@ -14,8 +14,8 @@ import '../screens/assessment/voice/voice_check_viewmodel.dart';
 import '../screens/assessment/cookie_theft_screen.dart';
 import '../screens/assessment/tug_test_screen.dart';
 import '../screens/assessment/results_screen.dart';
-import '../screens/medications/medications_screen.dart';
-import '../screens/doctors/doctors_screen.dart';
+import '../screens/medications/add_medication.dart';
+import '../screens/medications/view_medications.dart';
 import '../screens/consultation/consultation_screen.dart';
 import '../screens/voice_assistant/voice_assistant_screen.dart';
 import '../screens/profile/profile_screen.dart';
@@ -54,9 +54,6 @@ class AppRouter {
         path: '/assessment/mmse',
         builder: (context, state) => const MmseTestScreen(),
       ),
-      // ── Voice assessment shell ─────────────────────────────────────────
-      // VoiceCheckViewModel is created once when the user enters voice-analysis
-      // and disposed automatically when they leave the shell (after results).
       ShellRoute(
         builder: (context, state, child) => ChangeNotifierProvider(
           create: (_) => VoiceCheckViewModel(),
@@ -94,12 +91,12 @@ class AppRouter {
         builder: (context, state) => const ReportsScreen(),
       ),
       GoRoute(
-        path: '/medications',
-        builder: (context, state) => const MedicationsScreen(),
+        path: '/view-medications',
+        builder: (context, state) => const ViewMedicationsScreen(),
       ),
       GoRoute(
-        path: '/doctors',
-        builder: (context, state) => const DoctorsScreen(),
+        path: '/add-medication',
+        builder: (context, state) => const AddMedicationScreen(),
       ),
       GoRoute(
         path: '/consultation',

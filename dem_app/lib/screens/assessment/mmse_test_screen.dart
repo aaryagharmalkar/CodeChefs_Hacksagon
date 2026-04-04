@@ -74,6 +74,10 @@ InputDecoration _decoration({
 
 enum AnswerType { text, speechOnly, serial7, spellBackwards }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  QUESTION BANK
+// ═══════════════════════════════════════════════════════════════════════════
+
 class MmseQuestion {
   final String id;
   final String prompt; // shown as large card text + read by TTS
@@ -109,10 +113,6 @@ class MmseSection {
     required this.questions,
   });
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-//  QUESTION BANK
-// ═══════════════════════════════════════════════════════════════════════════
 
 final List<MmseSection> mmseSections = [
   // ── 1. Orientation to Time ─────────────────────────────────────────────
